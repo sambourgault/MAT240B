@@ -16,7 +16,8 @@ int main()
     //
     // use dictionary.find, dictionary.end, and dictionary[]
     //cout >> word;
-    string chars = "\" . , ! ? ; _ ( ) [ ] *";
+    // remove some punctuations 
+    string chars = "\" . , ! ? ; _ ( ) [ ]";
     for (char c : chars)
     {
       word.erase(remove(word.begin(), word.end(), c), word.end());
