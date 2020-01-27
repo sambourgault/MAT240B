@@ -15,7 +15,6 @@ int main()
     }
 
     // do things
-    std::smatch matches0;
     std::smatch matches;
     std::regex reg("(<a href=\"(.*?)\"(.*?)>)(.*?)(</a>)");
 
