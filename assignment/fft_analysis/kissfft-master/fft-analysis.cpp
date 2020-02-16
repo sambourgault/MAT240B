@@ -60,7 +60,7 @@ int main()
   cout << "DATA : " << dataSize << endl;
   //vector<float> magnitudes;
   vector<Peak> peak;
-  float threshold = 30.0f;
+  float threshold = 10.0f;
 
   int startIndex = 0;
   // go over the sample a window at a time
@@ -107,18 +107,19 @@ int main()
 
     int M = windowSize / 2 + 1;
 
-    float max = -100;
-    float maxFreq =-1;
+    //float max = -100;
+    //float maxFreq =-1;
 
     for (int i = 0; i < M; i++)
     {
       float freq = i * SAMPLE_RATE / (2 * M);
       float magnitudeSquare = pow(cx_out[i].r, 2) + pow(cx_out[i].i, 2);
       float magnitude = sqrt(magnitudeSquare);
-      if (magnitude > max){
+      
+      /*if (magnitude > max){
         max = magnitude;
         maxFreq = freq;
-      }
+      }*/
 
       // check if its a max and add to peak vector
       if (i > 0 && i < M - 1 && atodb(magnitude) > threshold)
@@ -154,6 +155,9 @@ int main()
       // add magnitude square to rms
       rms += magnitudeSquare;
     }
+    // Max value
+    //cout << "maxFreq: " << maxFreq <<  " max: " << max << " dB: " << atodb(max) << endl;
+
 
     centroid = centroid_num / centroid_denom;
     rms = sqrt(rms / M);
