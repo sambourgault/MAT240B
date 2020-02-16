@@ -18,17 +18,20 @@ For instance:
 hz:db hz:db hz:db hz:db hz:db hz:db hz:db hz:db
 */
 
+// structure for Peak values
 struct Peak
 {
   float db, hz;
 };
 
-float atodb(float a) { return 20.0f * log10f(a / 1.0f); }
-
+// function for peak sorting
 bool comparePeak(const Peak &a, const Peak &b)
 {
   return a.db > b.db;
 }
+
+// amplitude to dB converting function
+float atodb(float a) { return 20.0f * log10f(a / 1.0f); }
 
 int main()
 {
@@ -51,12 +54,14 @@ int main()
 
   // STFT algorithm
   // https://www.originlab.com/doc/Origin-Help/STFT-Algorithm
-  const int windowSize = 256; // L
-  const int overlapSize = 128;
+  const int windowSize = 2048; // L
+  const int overlapSize = 1024;
   const int dataSize = sample.size();
-  vector<float> magnitudes;
+  cout << "DATA : " << dataSize << endl;
+  //vector<float> magnitudes;
   vector<Peak> peak;
-  
+  float threshold = 30.0f;
+
   int startIndex = 0;
   // go over the sample a window at a time
   while (startIndex < dataSize - windowSize)
@@ -65,65 +70,99 @@ int main()
     kiss_fft_cpx *cx_in = new kiss_fft_cpx[windowSize];
     kiss_fft_cpx *cx_out = new kiss_fft_cpx[windowSize / 2 + 1];
 
-    // defining the window values
+    // time-domain audio parameter
+    float zcr = 0.0f;
+    float previousMag = 0.0f;
+
+    // defining the window values: cx_in
     for (int i = 0; i < windowSize; i++)
     {
       // Hamming window
-      float w_i = 0.54 - 0.46 * cos(TWO_PI * i / windowSize);
-      cx_in[i].r = sample.at(startIndex + i) * w_i;
+      // float w_i = 0.54 - 0.46 * cos(TWO_PI * i / windowSize);
+      // cx_in[i].r = sample.at(startIndex + i) * w_i;
+
+      // Rectangle window
+      cx_in[i].r = sample.at(startIndex + i);
       cx_in[i].i = 0.0;
+
+      // if the multiplication of magnitude and previous magnitude is negative, increment zero crossing rate.
+      if (i != 0 && (cx_in[i].r * previousMag) < 0)
+      {
+        zcr++;
+      }
+      previousMag = cx_in[i].r;
     }
+    // final evaluation of the zero crossing rate
+    zcr /= windowSize;
 
     // fft on window
     kiss_fft(cfg, cx_in, cx_out);
 
-    // info to find
+    // frequency-domain audio parameters
     float centroid_num = 0.0f;
     float centroid_denom = 0.0f;
     float centroid = 0.0f;
 
     float rms = 0.0f;
-    float zcr = 0.0f;
-    float previousMag = 0.0f;
 
     int M = windowSize / 2 + 1;
 
-    for (int i = 0; i < M - 1; i++)
+    float max = -100;
+    float maxFreq =-1;
+
+    for (int i = 0; i < M; i++)
     {
-      float freq = (i + startIndex) * SAMPLE_RATE / (2 * M);
+      float freq = i * SAMPLE_RATE / (2 * M);
       float magnitudeSquare = pow(cx_out[i].r, 2) + pow(cx_out[i].i, 2);
       float magnitude = sqrt(magnitudeSquare);
-
-      // check if its a max and add to peak vector
-      if (i > 0 && i < M - 2 && (pow(cx_out[i - 1].r, 2) + pow(cx_out[i - 1].i, 2)) < magnitude && (pow(cx_out[i + 1].r, 2) + pow(cx_out[i + 1].i, 2)) < magnitude)
-      {
-        peak.push_back(Peak());
-        peak[peak.size() - 1].hz = freq;
-        peak[peak.size() - 1].db = atodb(magnitude);
+      if (magnitude > max){
+        max = magnitude;
+        maxFreq = freq;
       }
 
+      // check if its a max and add to peak vector
+      if (i > 0 && i < M - 1 && atodb(magnitude) > threshold)
+      {
+        // this part sets "considered" to false as soon as the point considered is not a real max.
+        bool considered = true;
+        for (int j = 1; j < 2; j++)
+        {
+          if (sqrt(pow(cx_out[i - j].r, 2) + pow(cx_out[i - j].i, 2)) > magnitude)
+          {
+            considered = false;
+            break;
+          }
+          if (sqrt(pow(cx_out[i + j].r, 2) + pow(cx_out[i + j].i, 2)) > magnitude)
+          {
+            considered = false;
+            break;
+          }
+        }
+
+        // if "considered" as reamained true, the point is considered as a peak and added to the peak vector.
+        if (considered)
+        {
+          peak.push_back(Peak());
+          peak[peak.size() - 1].hz = freq;
+          peak[peak.size() - 1].db = atodb(magnitude);
+        }
+      }
       // compute the numerator and denominator of the spectral centroid
       centroid_num += freq * magnitude;
       centroid_denom += magnitude;
 
       // add magnitude square to rms
       rms += magnitudeSquare;
-
-      // if the multiplication of magnitude and previous magnitude is negative, increment zero crossing rate.
-      if (i != 0 && (atodb(magnitude) * atodb(previousMag)) < 0)
-      {
-        zcr++;
-      }
-
-      previousMag = magnitude;
     }
+
+    cout << "maxFreq: " << maxFreq <<  " MAX: " << max << " dB: " << atodb(max) << endl;
+
 
     centroid = centroid_num / centroid_denom;
     rms = sqrt(rms / M);
-    zcr /= M;
 
     // int samplenumber, float spectralCentroid, float RMS, float ZCR,
-    cout << "samplenumber: " << startIndex << ", spectral centroid:" << centroid << ", rms: " << rms << ", zcr: " << zcr << endl;
+    cout << "samplenumber: " << startIndex << ", spectral centroid: " << centroid << ", rms: " << rms << ", zcr: " << zcr << endl;
 
     // hz:db hz:db hz:db hz:db hz:db hz:db hz:db hz:db
     sort(peak.begin(), peak.end(), comparePeak);
@@ -138,9 +177,10 @@ int main()
     }
     cout << endl;
 
-    kiss_fft_free(cfg);
-    delete[] cx_in;
-    delete[] cx_out;
+    // make an error when I add the following lines
+    // kiss_fft_free(cfg);
+    // delete[] cx_in;
+    // delete[] cx_out;
     peak.clear();
     startIndex += overlapSize;
   }
