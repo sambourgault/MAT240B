@@ -155,9 +155,6 @@ int main()
       rms += magnitudeSquare;
     }
 
-    cout << "maxFreq: " << maxFreq <<  " MAX: " << max << " dB: " << atodb(max) << endl;
-
-
     centroid = centroid_num / centroid_denom;
     rms = sqrt(rms / M);
 
@@ -178,7 +175,7 @@ int main()
     cout << endl;
 
     // make an error when I add the following lines
-    // kiss_fft_free(cfg);
+     kiss_fft_free(cfg);
     // delete[] cx_in;
     // delete[] cx_out;
     peak.clear();
