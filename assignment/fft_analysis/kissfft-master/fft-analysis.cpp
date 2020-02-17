@@ -94,6 +94,9 @@ int main()
     }
     // final evaluation of the zero crossing rate
     zcr /= windowSize;
+    // Karl Yerkes suggestion:
+    zcr /= 2; // because a sine crosses zero twice per cycle
+    zcr *= SAMPLE_RATE; // units in Hz
 
     // fft on window
     kiss_fft(cfg, cx_in, cx_out);
