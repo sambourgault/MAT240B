@@ -26,7 +26,7 @@ float atodb(float a) { return 20.0f * log10f(a / 1.0f); }
 //   c++ -std=c++11 use-mlpack.cpp -lmlpack -larmadillo
 //
 
-using namespace mlpack::neighbor;
+using namespace mlpack::neighbor; // NeighborSearch and NearestNeighborSort
 
 typedef mlpack::neighbor::NeighborSearch<   //
     mlpack::neighbor::NearestNeighborSort,  //

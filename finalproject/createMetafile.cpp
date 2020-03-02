@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 
+
 using std::cin;
 using std::cout;
 using std::endl;
@@ -82,11 +83,13 @@ float findHighestPeak(const std::vector<float> &spectrum){
 }
 
 
-int main()
+int main(int argc, char *argv[])
 {
   // create and open the .csv file
   std::ofstream metadata;
-  metadata.open("query.meta.csv");
+  std::string filename = argv[1];
+  filename += ".meta.csv";
+  metadata.open(filename);
 
   // read in a sequence of lines where each line is a human readable floating
   // point number.
@@ -102,7 +105,7 @@ int main()
     }
     getline(cin, line);
     audio.push_back(f);
-    cout << f << endl;
+    //cout << f << endl;
   }
   cout << "audio size: " << audio.size() << endl;
   cout << "zero: " << zeroCount << endl;
@@ -124,8 +127,9 @@ int main()
     metadata << gist.rootMeanSquare() 
       << ',' << gist.peakEnergy() 
       << ',' << gist.zeroCrossingRate() 
-      << ',' << gist.spectralCentroid() 
-      << ',' << findHighestPeak(magSpec) << endl;
+      << ',' << gist.spectralCentroid()
+      << ',' << gist.pitch() << endl;
+     /* << ',' << findHighestPeak(magSpec) << endl;*/
 
      /*        << ',' << gist.rootMeanSquare()    //
              << ',' << gist.peakEnergy()        //
