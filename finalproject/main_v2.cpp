@@ -99,6 +99,7 @@ struct Appp : App
   //buffer1.resize(1024);
   vector<float> sample1;
   vector<float> sample2;
+  vector<float> hann;
   int readIndex = 0;
   int bufferIndex = 0;
   int sampleIndex = 0;
@@ -147,6 +148,11 @@ struct Appp : App
     input.resize(4096, 0.0f);
     sample1.resize(4096, 0.0f);
     sample2.resize(4096, 0.0f);
+    hann.resize(4096, 0.0f);
+    for (int i = 0; i < hann.size(); i++){
+          hann.push_back(0.5f * (1 - cos(2 * M_PI * i / frameSize)));
+    }
+
 
     gui << p1 << p2 << p3 << radius << mic;
     gui.init();
@@ -238,12 +244,12 @@ struct Appp : App
         if (sampleIndex == 0)
         {
 
-          sample1[i] = w_i * frame[i];
+          sample1[i] = hann[i] * frame[i];
           sampleIndex = 1;
         }
         else
         {
-          sample2[i] = w_i * frame[i];
+          sample2[i] = hann[i] * frame[i];
           sampleIndex = 0;
         }
       }
