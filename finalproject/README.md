@@ -13,5 +13,8 @@ I envision this project as a small experiment for myself to understand and estab
 With this project, I also wish to investigate the potential of analysis/resynthesis as a creative process. Inspired by the work of Javier Villegas in the visual realm, I wish to transfer some of his insights into the audio context. 
 
 ## schematics
+### installation schematics
 ![schematics 1](scheme1.png)
+
+### code schematics
 ![schematics 2](scheme2.png)
