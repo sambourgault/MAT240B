@@ -4,6 +4,7 @@
 #include "al/ui/al_ControlGUI.hpp" // gui.draw(g)
 using namespace al;
 
+
 #include "Gist.h"
 
 #include <vector>
@@ -16,11 +17,13 @@ using namespace mlpack;
 using namespace mlpack::neighbor; // NeighborSearch and NearestNeighborSort
 using namespace mlpack::metric;   // ManhattanDistance
 
+#define _USE_MATH_DEFINES
+
 typedef mlpack::neighbor::NeighborSearch<  //
     mlpack::neighbor::NearestNeighborSort, //
     mlpack::metric::EuclideanDistance,
-    arma::mat,              //
-    mlpack::tree::BallTree> //
+    arma::mat,            //
+    mlpack::tree::KDTree> //
     myKNN;
 
 // tree types:
@@ -72,8 +75,8 @@ float atodb(float a) { return 20.0f * log10f(a / 1.0f); }
 //--------------------------------
 
 const int sampleRate = 44100;
-const int frameSize = 1024;
-const int hopSize = frameSize / 4;
+const int frameSize = 4096;
+const int hopSize = frameSize / 2;
 
 static Gist<float> gist(frameSize, sampleRate);
 
@@ -88,18 +91,18 @@ struct Appp : App
 
   myKNN myknn;
   vector<float> sample; // contain all sample data
-  vector<float> buffer1;
+  vector<float> input;
   vector<FeatureVector> feature; //
   vector<int> neighbors;
   vector<int> previousNeighbors;
   arma::mat dataset;
 
   //buffer1.resize(1024);
-  vector<float> buffer2;
-  vector<float> buffer3;
-  vector<float> buffer4;
+  vector<float> sample1;
+  vector<float> sample2;
   int readIndex = 0;
   int bufferIndex = 0;
+  int sampleIndex = 0;
 
   //HashSpace space;
   Mesh mesh;
@@ -142,10 +145,9 @@ struct Appp : App
 
   void onCreate() override
   {
-    buffer1.resize(1024, 0.0f);
-    buffer2.resize(1024, 0.0f);
-    buffer3.resize(1024, 0.0f);
-    buffer4.resize(1024, 0.0f);
+    input.resize(4096, 0.0f);
+    sample1.resize(4096, 0.0f);
+    sample2.resize(4096, 0.0f);
 
     gui << p1 << p2 << p3 << radius << mic;
     gui.init();
@@ -201,69 +203,14 @@ struct Appp : App
   {
     if (mic)
     {
-      if (bufferIndex == 0)
+      // get input buffer every frameSize
+      for (int i = 0; i < frameSize; i++)
       {
-        for (int i = 0; i < hopSize; i++)
-        {
-          buffer1[i] = io.inBuffer(0)[i];
-          buffer2[i + 3 * hopSize] = io.inBuffer(0)[i];
-          buffer3[i + 2 * hopSize] = io.inBuffer(0)[i];
-          buffer4[i + 1 * hopSize] = io.inBuffer(0)[i];
-        }
-      }
-      else if (bufferIndex == 1)
-      {
-        for (int i = 0; i < hopSize; i++)
-        {
-          buffer2[i] = io.inBuffer(0)[i];
-          buffer3[i + 3 * hopSize] = io.inBuffer(0)[i];
-          buffer4[i + 2 * hopSize] = io.inBuffer(0)[i];
-          buffer1[i + 1 * hopSize] = io.inBuffer(0)[i];
-        }
-      }
-      else if (bufferIndex == 2)
-      {
-        for (int i = 0; i < hopSize; i++)
-        {
-          buffer3[i] = io.inBuffer(0)[i];
-          buffer4[i + 3 * hopSize] = io.inBuffer(0)[i];
-          buffer1[i + 2 * hopSize] = io.inBuffer(0)[i];
-          buffer2[i + 1 * hopSize] = io.inBuffer(0)[i];
-        }
-      }
-      else if (bufferIndex == 3)
-      {
-        for (int i = 0; i < hopSize; i++)
-        {
-          buffer4[i] = io.inBuffer(0)[i];
-          buffer1[i + 3 * hopSize] = io.inBuffer(0)[i];
-          buffer2[i + 2 * hopSize] = io.inBuffer(0)[i];
-          buffer3[i + 1 * hopSize] = io.inBuffer(0)[i];
-        }
+        input[i] = io.inBuffer(0)[i];
       }
 
-      bufferIndex++;
-      if (bufferIndex == 4)
-      {
-        bufferIndex = 0;
-      }
-
-      if (bufferIndex == 3)
-      {
-        gist.processAudioFrame(buffer1);
-      }
-      else if (bufferIndex == 0)
-      {
-        gist.processAudioFrame(buffer2);
-      }
-      else if (bufferIndex == 1)
-      {
-        gist.processAudioFrame(buffer3);
-      }
-      else if (bufferIndex == 2)
-      {
-        gist.processAudioFrame(buffer4);
-      }
+      // gist for input buffer
+      gist.processAudioFrame(input);
 
       //gist.processAudioFrame(io.inBuffer(0), frameSize);
       arma::mat query = {f1(), f2(), f3(), f4(), f5()};
@@ -284,23 +231,33 @@ struct Appp : App
 
       float *frame = &sample[neighbors[0] * frameSize];
       //io.outBuffer(0)[readIndex] = buffer1[readIndex];
-      for (int i = 0; i < hopSize; i++)
+      for (int i = 0; i < frameSize; i++)
+      {
+        //Hann function
+        float w_i = 0.5f*(1-cos(2*M_PI*i/frameSize));
+
+        if (sampleIndex == 0)
+        {
+          
+          sample1[i] = w_i*frame[i];
+          sampleIndex = 1;
+        }
+        else
+        {
+          sample2[i] = w_i*frame[i];
+          sampleIndex = 0;
+        }
+      }
+
+      for (int i = 0; i < frameSize; i++)
       { //
-        if (bufferIndex == 0)
+        if (sampleIndex == 0)
         {
-          io.outBuffer(0)[i] = buffer1[i]; //frame[i];
+          io.outBuffer(0)[i] = sample1[i+hopSize] + (sample1[i]+sample2[i])/2 + sample2[i]//frame[i];
         }
-        else if (bufferIndex == 1)
+        else if (sampleIndex == 1)
         {
-          io.outBuffer(0)[i] = buffer2[i]; //frame[i];
-        }
-        else if (bufferIndex == 2)
-        {
-          io.outBuffer(0)[i] = buffer3[i]; //frame[i];
-        }
-        else if (bufferIndex == 3)
-        {
-          io.outBuffer(0)[i] = buffer4[i]; //frame[i];
+          io.outBuffer(0)[i] = sample2[i+hopSize] + (sample1[i]+sample2[i])/2 + sample1[i]//frame[i];
         }
       }
 
@@ -370,6 +327,6 @@ int main(int argc, char *argv[])
 {
 
   Appp app(argc, argv); // blocks until contructor is complete
-  app.audioDomain()->configure(44100, hopSize, 2, 2);
+  app.audioDomain()->configure(44100, frameSize, 2, 2);
   app.start(); // blocks; hand over control to the framework
 }

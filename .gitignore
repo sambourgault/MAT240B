@@ -3,3 +3,4 @@ bin/
 .vscode
 computeKNN concatenateSound createMetafile
 .exe
+*.pkf
