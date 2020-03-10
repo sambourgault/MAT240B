@@ -4,7 +4,6 @@
 #include "al/ui/al_ControlGUI.hpp" // gui.draw(g)
 using namespace al;
 
-
 #include "Gist.h"
 
 #include <vector>
@@ -234,30 +233,47 @@ struct Appp : App
       for (int i = 0; i < frameSize; i++)
       {
         //Hann function
-        float w_i = 0.5f*(1-cos(2*M_PI*i/frameSize));
+        float w_i = 0.5f * (1 - cos(2 * M_PI * i / frameSize));
 
         if (sampleIndex == 0)
         {
-          
-          sample1[i] = w_i*frame[i];
+
+          sample1[i] = w_i * frame[i];
           sampleIndex = 1;
         }
         else
         {
-          sample2[i] = w_i*frame[i];
+          sample2[i] = w_i * frame[i];
           sampleIndex = 0;
         }
       }
 
-      for (int i = 0; i < frameSize; i++)
-      { //
-        if (sampleIndex == 0)
-        {
-          io.outBuffer(0)[i] = sample1[i+hopSize] + (sample1[i]+sample2[i])/2 + sample2[i]//frame[i];
-        }
-        else if (sampleIndex == 1)
-        {
-          io.outBuffer(0)[i] = sample2[i+hopSize] + (sample1[i]+sample2[i])/2 + sample1[i]//frame[i];
+      if (!sample1.empty() && !sample2.empty())
+      {
+        for (int i = 0; i < frameSize; i++)
+        { //
+          if (sampleIndex == 0)
+          {
+            if (i < hopSize)
+            {
+              io.outBuffer(0)[i] = sample1[i + hopSize] + (sample1[i] + sample2[i]) / 2;
+            }
+            else
+            {
+              io.outBuffer(0)[i] = (sample1[i] + sample2[i]) / 2 + sample2[i];
+            }
+          }
+          else if (sampleIndex == 1)
+          {
+            if (i < hopSize)
+            {
+              io.outBuffer(0)[i] = sample2[i + hopSize] + (sample1[i] + sample2[i]) / 2;
+            }
+            else
+            {
+              io.outBuffer(0)[i] = (sample1[i] + sample2[i]) / 2 + sample1[i];
+            }
+          }
         }
       }
 
