@@ -21,7 +21,7 @@ using namespace mlpack::metric;   // ManhattanDistance
 typedef mlpack::neighbor::NeighborSearch<  //
     mlpack::neighbor::NearestNeighborSort, //
     mlpack::metric::ManhattanDistance,
-    arma::mat,              //
+    arma::mat,            //
     mlpack::tree::KDTree> //
     myKNN;
 
@@ -71,7 +71,7 @@ struct FeatureVector
 };
 
 const int sampleRate = 44100;
-const int frameSize = 1024;
+const int frameSize = 2048;
 const int hopSize = frameSize / 2;
 
 // UTILS functions ---------------
@@ -154,8 +154,9 @@ struct Appp : App
   Parameter p1{"/p1", "", 0.5, "", 0.0, 1.0};
   Parameter p2{"/p2", "", 0.5, "", 0.0, 1.0};
   Parameter p3{"/p3", "", 0.5, "", 0.0, 1.0};
+  Parameter minEnergyPeak{"/minEnergyPeak", "", 0.05, "", 0.0, 0.3};
   Parameter radius{"/radius", "", 0.5, "", 0.0, 1.0};
-  ParameterBool mic{"mic", "", 1.0};
+  ParameterBool mic{"/mic", "", 1.0};
   ControlGUI gui;
 
   myKNN myknn;
@@ -180,6 +181,7 @@ struct Appp : App
   int sampleIndex = 0;
 
   deque<int> neighborPos;
+  deque<int> energyPeaks;
 
   //HashSpace space;
   Mesh mesh;
@@ -253,7 +255,7 @@ struct Appp : App
     sample1.resize(frameSize, 0.0f);
     sample2.resize(frameSize, 0.0f);
     hann.resize(frameSize, 0.0f);
-    hann2.resize(2*frameSize, 0.0f);
+    hann2.resize(2 * frameSize, 0.0f);
     soundQueryFrame.resize(frameSize, 0.0f);
 
     for (int i = 0; i < hann.size(); i++)
@@ -263,10 +265,10 @@ struct Appp : App
 
     for (int i = 0; i < hann2.size(); i++)
     {
-      hann2[i] = 0.5f * (1 - cos(2 * M_PI * i / (2*frameSize)));
+      hann2[i] = 0.5f * (1 - cos(2 * M_PI * i / (2 * frameSize)));
     }
 
-    gui << p1 << p2 << p3 << radius << mic;
+    gui << p1 << p2 << p3 << minEnergyPeak << radius << mic;
     gui.init();
     navControl().useMouse(true);
 
@@ -318,13 +320,33 @@ struct Appp : App
   //
   void onSound(AudioIOData &io) override
   {
+
+    //return;
+
     if (mic)
     {
-      // get input buffer every frameSize
       for (int i = 0; i < frameSize; i++)
       {
+        //cout << io.in(0) << endl;
+        //input[i] = io.in(0);
         input[i] = io.inBuffer(0)[i];
+        //cout << input[i] << endl;
+        test << input[i] << endl;
       }
+      //return;
+
+      // get input buffer every frameSize
+      /*for (int i = 0; i < frameSize; i++)
+      {
+        input[i] = io.inBuffer(0)[i];
+      }*/
+      //cout << io.inBuffer(0)[0] << endl;
+
+      /*for (int i = 0; i < frameSize; i++){
+        io.outBuffer(0)[i] = input[i];
+        io.outBuffer(1)[i] = input[i];
+      }
+      return;*/
 
       // gist for input buffer
       gist.processAudioFrame(input);
@@ -341,9 +363,11 @@ struct Appp : App
 
       //float *frame = &sample[neighbors[0] * hopSize];
       neighborPos.push_back(neighbors[0] * hopSize);
+      energyPeaks.push_back(query[1]);
       if (neighborPos.size() > 2)
       {
         neighborPos.pop_front();
+        energyPeaks.pop_front();
       }
 
       for (int i = 0; i < frameSize; i++)
@@ -352,11 +376,23 @@ struct Appp : App
 
         for (int j = 0; j < neighborPos.size(); j++)
         {
-          value += hann2[i + (j * frameSize)] * sample[neighborPos[j] + i + (j * frameSize)];
+          if (energyPeaks[j] > minEnergyPeak)
+          {
+            value += hann2[i + (j * frameSize)] * sample[neighborPos[j] + i + (j * frameSize)];
+          }
+          else
+          {
+            value += 0.0f;
+          }
         }
         test << (1.0f / neighborPos.size()) * value << endl;
         //io.outBuffer(0)[i] = (1.0f / neighborPos.size()) * value;
+        //if(query[1] > minEnergyPeak){
         io.outBuffer(0)[i] = value;
+        io.outBuffer(1)[i] = value;
+        //} else {
+        // io.outBuffer(0)[i] = 0.0f;
+        //}
       }
 
       return;
@@ -462,6 +498,42 @@ struct Appp : App
       //cout << neighbors[0] << endl;
 
       float *frame = &sample[neighbors[0] * hopSize];
+
+      neighborPos.push_back(neighbors[0] * hopSize);
+      energyPeaks.push_back(query[1]);
+      if (neighborPos.size() > 2)
+      {
+        neighborPos.pop_front();
+        energyPeaks.pop_front();
+      }
+
+      for (int i = 0; i < frameSize; i++)
+      {
+        float value = 0.0f;
+
+        for (int j = 0; j < neighborPos.size(); j++)
+        {
+          if (energyPeaks[j] > minEnergyPeak)
+          {
+            value += hann2[i + (j * frameSize)] * sample[neighborPos[j] + i + (j * frameSize)];
+          }
+          else
+          {
+            value += 0.0f;
+          }
+        }
+
+        test << value << endl;
+        //io.outBuffer(0)[i] = (1.0f / neighborPos.size()) * value;
+        //if(query[1] > minEnergyPeak){
+        io.outBuffer(0)[i] = value;
+        io.outBuffer(1)[i] = value;
+        //} else {
+        // io.outBuffer(0)[i] = 0.0f;
+        //}
+      }
+
+      return;
 
       /*for (int i = 0; i < frameSize; i++)
       {
@@ -612,15 +684,36 @@ struct Appp : App
 
     g.clear(Color(0.21));
     /* g.draw(mesh);
-    g.draw(line);
-    gui.draw(g);*/
+    g.draw(line);*/
+    gui.draw(g);
   }
 };
 
 int main(int argc, char *argv[])
 {
+  // Default devices
+  AudioDevice dev = AudioDevice::defaultOutput();
+  dev.print();
 
+  AudioDevice dev_in = AudioDevice::defaultInput();
+  dev_in.print();
+
+  // You can also specify a device by name:
+  AudioDevice dev_name = AudioDevice("Device Name");
+  // This is probably an invalid device. This will be printed.
+  dev_name.print();
+
+  // You can get a list of available devices with their names
+  for (int i = 0; i < AudioDevice::numDevices(); i++)
+  {
+    printf(" --- [%2d] ", i);
+    AudioDevice dev(i);
+    dev.print();
+  }
+
+  // sample rate, buffer size, nb out, nb in;
   Appp app(argc, argv); // blocks until contructor is complete
-  app.audioDomain()->configure(44100, frameSize, 2, 2);
+  app.audioDomain()->configure(48000, frameSize, 2, 2);
+  app.audioDomain()->audioIO().print();
   app.start(); // blocks; hand over control to the framework
 }

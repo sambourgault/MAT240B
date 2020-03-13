@@ -14,7 +14,7 @@ using std::vector;
 
 // parameter for fft
 const int sampleRate = 44100;
-const int frameSize = 1024;
+const int frameSize = 2048;
 const int hopSize = frameSize / 2;
 int ratio = frameSize/hopSize;
 

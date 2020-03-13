@@ -15,7 +15,7 @@ using std::vector;
 
 // parameter for fft
 const int sampleRate = 44100;
-const int frameSize = 1024;
+const int frameSize = 4096;
 const int hopSize = frameSize / 2;
 const float TWO_PI = 6.28318530718;
 
