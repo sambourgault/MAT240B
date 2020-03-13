@@ -44,6 +44,7 @@ use-gist: libgist
 	$(CXX) $(LIB) $(INC) createMetafile.cpp libgist.a -o createMetafile
 	$(CXX) $(LIB) $(INC) computeKNN.cpp libgist.a -lmlpack -larmadillo -o computeKNN 
 	$(CXX) $(LIB) $(INC) concatenateSound.cpp -o concatenateSound 
+	$(CXX) $(LIB) $(INC) csvToVector.cpp -o csvToVector 
 
 libgist: $(OBJ)
 	ar -rc libgist.a $^

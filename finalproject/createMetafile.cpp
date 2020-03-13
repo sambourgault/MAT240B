@@ -15,7 +15,7 @@ using std::vector;
 // parameter for fft
 const int sampleRate = 44100;
 const int frameSize = 1024;
-const int hopSize = frameSize / 4;
+const int hopSize = frameSize / 2;
 int ratio = frameSize/hopSize;
 
 // midi to frequency function
@@ -97,19 +97,20 @@ int main(int argc, char *argv[])
   getline(cin, line);
   vector<float> audio;
   int zeroCount = 0;
+
   while (line != "")
   {
     float f = stof(line);
     if(f == 0.0f){
-      zeroCount++;
+      //zeroCount++;
     }
     getline(cin, line);
     audio.push_back(f);
-    //cout << f << endl;
+    //std::cout << f << std::endl;
   }
-  cout << "audio size: " << audio.size() << endl;
+  /*cout << "audio size: " << audio.size() << endl;
   cout << "zero: " << zeroCount << endl;
-  cout << "ratio: " << zeroCount/audio.size() << endl;
+  cout << "ratio: " << zeroCount/audio.size() << endl;*/
 
 
   // use Gist to analyze and print a bunch of frames
@@ -127,29 +128,36 @@ int main(int argc, char *argv[])
     metadata << gist.rootMeanSquare() 
       << ',' << gist.peakEnergy() 
       << ',' << gist.zeroCrossingRate() 
-      << ',' << gist.spectralCentroid()
-      << ',' << gist.pitch() << endl;
-     /* << ',' << findHighestPeak(magSpec) << endl;*/
+      << ',' << gist.energyDifference()
+      //<< ',' << gist.pitch()
+      << ',' << gist.spectralDifference()
+      << ',' << gist.highFrequencyContent()
+      /*<< ',' << gist.spectralCentroid()
+      << ',' << gist.spectralCrest()
+      << ',' << gist.spectralFlatness()*/
+      << ',' << findHighestPeak(magSpec) << endl;
 
      /*        << ',' << gist.rootMeanSquare()    //
              << ',' << gist.peakEnergy()        //
              << ',' << gist.zeroCrossingRate()  //
-             << ',' << gist.spectralCentroid(); //
-
-
-    // adding 4 peaks
-    for (int i = 0; i < 4; i++)
-    {
-      if (peakIndex.size() > i){
-        metadata << ',' << peakIndex[i] * sampleRate / (2 * magSpec.size())
-                  << ',' << atodb(magSpec[peakIndex[i]]);
+             << ',' << gist.spectralCentroid(); //*/
+/*      vector<int> peaks = findPeakIndex(magSpec);
+      if (peaks.size()>0){
+      metadata << ',' << peaks[0] * sampleRate / (2.0f * magSpec.size());
       } else {
-        metadata << ',' << 0.0f
-                  << ',' << 0.0f;
+              metadata << ',' << 0.0f;
       }
-    }
-
-    metadata << endl; */
+      if (peaks.size()>1){
+      metadata << ',' << peaks[1] * sampleRate / (2.0f * magSpec.size());
+      } else {
+              metadata << ',' << 0.0f;
+      }
+      if (peaks.size()>2){
+      metadata << ',' << peaks[2] * sampleRate / (2.0f * magSpec.size());
+      } else {
+              metadata << ',' << 0.0f;
+      }
+      metadata << endl;*/
   }
   metadata.close();
 }

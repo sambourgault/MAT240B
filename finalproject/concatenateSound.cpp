@@ -16,7 +16,7 @@ using std::vector;
 // parameter for fft
 const int sampleRate = 44100;
 const int frameSize = 1024;
-const int hopSize = frameSize / 4;
+const int hopSize = frameSize / 2;
 const float TWO_PI = 6.28318530718;
 
 // midi to frequency function
@@ -95,6 +95,9 @@ int main()
         {
           // Hamming window
           float w_i = 0.54f - 0.46f * cos(TWO_PI * ((k*hopSize)+i) / frameSize);
+          //float w_i = 0.5f;
+          // Hanning
+          //float w_i = 0.5f * (1 - cos(TWO_PI * ((k*hopSize)+i) / frameSize));
           add += w_i*sample[neighbors[j - k] * hopSize + (k*hopSize) + i];
         }
       }
