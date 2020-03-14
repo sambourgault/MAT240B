@@ -694,7 +694,7 @@ struct Appp : App
   std::ofstream test;
 
   // gui
-  Parameter minEnergyPeak{"/minEnergyPeak", "", 0.05, "", 0.0, 0.3};
+  Parameter minEnergyPeak{"/minEnergyPeak", "", 0.01, "", 0.0, 0.2};
   ParameterBool mic{"/mic", "", 1.0};
   ControlGUI gui;
 
@@ -721,7 +721,7 @@ struct Appp : App
   int sampleIndex = 0;
 
   deque<int> neighborPos;
-  deque<int> energyPeaks;
+  deque<float> energyPeaks;
 
   Appp(int argc, char *argv[])
   {
@@ -860,6 +860,8 @@ struct Appp : App
       neighborPos.push_back(neighbors[0] * hopSize);
       energyPeaks.push_back(query[1]);
 
+      //cout << query[1] << endl;
+
       if (neighborPos.size() > 2)
       {
         neighborPos.pop_front();
@@ -874,20 +876,27 @@ struct Appp : App
 
         for (int j = 0; j < neighborPos.size(); j++)
         {
+          //cout << energyPeaks[j] << endl;
           if (energyPeaks[j] > minEnergyPeak)
           {
             value += hann2[i + (j * frameSize)] * sample[neighborPos[j] + i + (j * frameSize)];
+            //cout << value << endl;
           }
           else
           {
+            
             value += 0.0f;
           }
         }
         //test << (1.0f / neighborPos.size()) * value << endl;
         //io.outBuffer(0)[i] = (1.0f / neighborPos.size()) * value;
         //if(query[1] > minEnergyPeak){
-        io.outBuffer(0)[i] = input[i];
+        /*io.outBuffer(0)[i] = input[i];
+        io.outBuffer(1)[i] = input[i];*/
+
+        io.outBuffer(0)[i] = value;
         io.outBuffer(1)[i] = input[i];
+
         //} else {
         // io.outBuffer(0)[i] = 0.0f;
         //}
