@@ -688,20 +688,24 @@ static Gist<float> gist(frameSize, sampleRate);
 //   }*/
 // };
 
-struct Appp : App {
+struct Appp : App
+{
+  // csv file for test purpose
   std::ofstream test;
 
+  // gui
   Parameter minEnergyPeak{"/minEnergyPeak", "", 0.05, "", 0.0, 0.3};
   ParameterBool mic{"/mic", "", 1.0};
   ControlGUI gui;
 
+  // Nearest neighbors search variables
   myKNN myknn;
-  vector<float> sample; // contain all sample data
-  vector<float> soundQuery;
+  vector<float> sample;     // contain all sample data
+  vector<float> soundQuery; // contain all sound query data
   vector<float> soundQueryFrame;
   int soundQueryIndex = 0;
   vector<float> input;
-  vector<FeatureVector> feature; //
+  vector<FeatureVector> feature;
   vector<int> neighbors;
   vector<int> previousNeighbors;
   arma::mat dataset;
@@ -719,17 +723,22 @@ struct Appp : App {
   deque<int> neighborPos;
   deque<int> energyPeaks;
 
-  Appp(int argc, char *argv[]){
+  Appp(int argc, char *argv[])
+  {
     cout << "hello" << endl;
     cout << argc << endl;
 
+    // open test.csv file to save output data
+    // to be able to look at the signal generated afterward
+    // thi is use to debug only
     test.open("test.csv");
 
+    // load the data (corpus) metafile
     std::string filename = argv[1];
     filename += ".meta.csv";
     mlpack::data::Load(filename, dataset, true);
 
-    // putting soundfile (corpus) in sample vector
+    // put soundfile (corpus) in sample vector
     for (int i = 2; i < 3; i++)
     {
       SoundFile soundFile;
@@ -741,29 +750,171 @@ struct Appp : App {
         sample.push_back(soundFile.data[i]);
     }
 
+    // exit the program if the sample size is smaller than a framesize
+    if (sample.size() < frameSize) //
+      exit(1);
+
+    // put soundfile (query) in a soundQuery vector
+    // this is used when the mic is off for testing purposes mainly
+    for (int i = 3; i < 4; i++)
+    {
+      SoundFile soundFile;
+      if (!soundFile.open(argv[i])) //
+        exit(1);
+      if (soundFile.channels > 1) //
+        exit(1);
+      for (int i = 0; i < soundFile.data.size(); i++) //
+        soundQuery.push_back(soundFile.data[i]);
+    }
+
+    if (soundQuery.size() < frameSize) //
+      exit(1);
   }
 
-  void onSound(AudioIOData& io) override {
+  // functions that calculate features
+  //
+  float rms() { return gist.rootMeanSquare(); }
+  float peakEnergy() { return gist.peakEnergy(); }
+  float zcr() { return gist.zeroCrossingRate(); }
+  float energyDifference() { return gist.energyDifference(); }
+  float spectralCentroid() { return gist.spectralCentroid(); }
+  float spectralDifference() { return gist.spectralDifference(); }
+  float cSpectralDifference() { return gist.complexSpectralDifference(); }
+  float highFrequencyContent() { return gist.highFrequencyContent(); }
+  float pitch() { return gist.pitch(); }
+  float highPeak()
+  {
+    const std::vector<float> &magSpec = gist.getMagnitudeSpectrum();
+    return findHighestPeak(magSpec);
+  }
+
+  void onCreate() override
+  {
+    // resize vectors to framesize
+    //input.resize(frameSize, 0.0f);
+    hann.resize(frameSize, 0.0f);
+    hann2.resize(2 * frameSize, 0.0f); // hann function - twice as big as framesize
+    soundQueryFrame.resize(frameSize, 0.0f);
+
+    // fillup hann function vectors
+    for (int i = 0; i < hann.size(); i++)
+    {
+      hann[i] = 0.5f * (1 - cos(2 * M_PI * i / frameSize));
+    }
+
+    for (int i = 0; i < hann2.size(); i++)
+    {
+      hann2[i] = 0.5f * (1 - cos(2 * M_PI * i / (2 * frameSize)));
+    }
+
+    // initialize gui
+    gui << minEnergyPeak << mic;
+    gui.init();
+    navControl().useMouse(true);
+
+    // link knn to dataset
+    myknn.Train(dataset);
+  }
+
+  void onSound(AudioIOData &io) override
+  {
     float sum = 0;
-    while (io()) {
+    input.clear();
+
+    while (io())
+    {
       float f = io.in(0) + io.in(1);
       sum += f > 0 ? f : -f;
-      io.out(0) = io.out(1) = f / 2;
+      input.push_back(f / 2);
+      //io.out(0) = io.out(1) = f / 2;
     }
-    sum /= 1024;
-    if (sum > .707)  //
-      printf("%f\n", sum);
+    // sum /= 1024;
+    // if (sum > .707) //
+    //   printf("%f\n", sum);
+
+    if (mic)
+    {
+
+      // get input buffer every frameSize
+      /*for (int i = 0; i < frameSize; i++)
+      {
+        input[i] = io.inBuffer(0)[i];
+      }*/
+      //cout << io.inBuffer(0)[0] << endl;
+
+      // gist for input buffer
+      gist.processAudioFrame(input);
+
+      arma::mat query = {rms(), peakEnergy(), zcr(), energyDifference(), spectralDifference(), highFrequencyContent(), highPeak()};
+      arma::mat distances;
+      arma::Mat<size_t> neighbors;
+
+      // execute the search
+      //
+      myknn.Search(query.t(), 1, neighbors, distances);
+
+      //float *frame = &sample[neighbors[0] * hopSize];
+
+      // keep track of previous neighbors and peak energy values
+      //
+      neighborPos.push_back(neighbors[0] * hopSize);
+      energyPeaks.push_back(query[1]);
+
+      if (neighborPos.size() > 2)
+      {
+        neighborPos.pop_front();
+        energyPeaks.pop_front();
+      }
+
+      // smooth value with the value of the previous sample
+      //
+      for (int i = 0; i < frameSize; i++)
+      {
+        float value = 0.0f;
+
+        for (int j = 0; j < neighborPos.size(); j++)
+        {
+          if (energyPeaks[j] > minEnergyPeak)
+          {
+            value += hann2[i + (j * frameSize)] * sample[neighborPos[j] + i + (j * frameSize)];
+          }
+          else
+          {
+            value += 0.0f;
+          }
+        }
+        //test << (1.0f / neighborPos.size()) * value << endl;
+        //io.outBuffer(0)[i] = (1.0f / neighborPos.size()) * value;
+        //if(query[1] > minEnergyPeak){
+        io.outBuffer(0)[i] = input[i];
+        io.outBuffer(1)[i] = input[i];
+        //} else {
+        // io.outBuffer(0)[i] = 0.0f;
+        //}
+      }
+    } else {
+      // if mic is off don't play anything
+      //
+      for (int i = 0; i < frameSize; i++)
+      {
+        io.outBuffer(0)[i] = 0.0f;
+        io.outBuffer(1)[i] = 0.0f;
+      }
+    }
+  }
+
+  void onDraw(Graphics &g) override
+  {
+    g.clear(Color(0.21));
+    // g.draw(mesh);
+    // g.draw(line);
+    gui.draw(g);
   }
 };
 
 int main(int argc, char *argv[])
 {
-  //  AudioDevice out = AudioDevice::defaultOutput();
-  //  out.print();
-  //
-  //  AudioDevice in = AudioDevice::defaultInput();
-  //  in.print();
-  //
+
   /*for (int i = 0; i < AudioDevice::numDevices(); i++)
   {
     printf(" --- [%2d] ", i);
@@ -781,7 +932,7 @@ int main(int argc, char *argv[])
   // - Use that whole name in the AudioDevice constructor like we see below
   //
   AudioDevice aggregate = AudioDevice("Apple Inc.: H4Headphones");
-  aggregate.print();
+  //aggregate.print();
 
   // sample rate, buffer size, nb out, nb in;
   Appp app(argc, argv); // blocks until contructor is complete
