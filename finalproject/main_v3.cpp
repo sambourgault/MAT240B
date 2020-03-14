@@ -2,6 +2,8 @@
 #include "al/sound/al_SoundFile.hpp"
 #include "al/spatial/al_HashSpace.hpp"
 #include "al/ui/al_ControlGUI.hpp" // gui.draw(g)
+#include "al/types/al_SingleRWRingBuffer.hpp"
+
 using namespace al;
 
 #include "Gist.h"
@@ -698,6 +700,16 @@ struct Appp : App
   ParameterBool mic{"/mic", "", 1.0};
   ControlGUI gui;
 
+  //graphics
+  const size_t bufferSize = 8192;
+  float bufferData[8192];
+  double phase = 0;
+  // Create ring buffer with size 2048
+  SingleRWRingBuffer ringBuffer{bufferSize * sizeof (float)};
+  Mesh curve;
+  Mesh line;
+  deque<float> vertexBuffer;
+
   // Nearest neighbors search variables
   myKNN myknn;
   vector<float> sample;     // contain all sample data
@@ -790,6 +802,9 @@ struct Appp : App
 
   void onCreate() override
   {
+    line.primitive(Mesh::LINE_STRIP);
+    line.vertex(0,0,0);
+    line.vertex(1,1,0);
     // resize vectors to framesize
     //input.resize(frameSize, 0.0f);
     hann.resize(frameSize, 0.0f);
@@ -810,7 +825,8 @@ struct Appp : App
     // initialize gui
     gui << minEnergyPeak << mic;
     gui.init();
-    navControl().useMouse(true);
+    //navControl().useMouse(true);
+    nav().pos(0,0,1);
 
     // link knn to dataset
     myknn.Train(dataset);
@@ -870,6 +886,7 @@ struct Appp : App
 
       // smooth value with the value of the previous sample
       //
+      float out[2];
       for (int i = 0; i < frameSize; i++)
       {
         float value = 0.0f;
@@ -893,9 +910,19 @@ struct Appp : App
         //if(query[1] > minEnergyPeak){
         /*io.outBuffer(0)[i] = input[i];
         io.outBuffer(1)[i] = input[i];*/
+        out[0] = i;
+        out[1] = value;
+        
+        /*out[0] = cos(5*0 * 2*M_PI);
+        out[1] = sin(4*0* 2*M_PI);*/
 
         io.outBuffer(0)[i] = value;
         io.outBuffer(1)[i] = input[i];
+
+        //cout << out[0] <<' ' << out[1] << endl;
+        // Write the waveforms to the ring buffer. (from Putnam audiotoGraphics.cpp)
+        ringBuffer.write((const char *) out, 2 * sizeof (float));
+
 
         //} else {
         // io.outBuffer(0)[i] = 0.0f;
@@ -912,11 +939,41 @@ struct Appp : App
     }
   }
 
+  // from Lance Putnam audiotoGraphics.cpp
+  //
+  void onAnimate(double dt) override
+  {
+    curve.primitive(Mesh::LINE_STRIP);
+    curve.reset();
+
+    size_t samplesRead = ringBuffer.read((char *) bufferData, bufferSize * sizeof (float));
+
+    // Now we read samples from the buffer into the meash to be displayed
+    for(size_t i=0; i < samplesRead/sizeof (float); i = i+2){
+      vertexBuffer.push_back(bufferData[i+1]);
+      //cout << bufferData[i]/frameSize << ' ' <<  100*bufferData[i+1] << endl;
+      //curve.vertex((bufferData[i]/frameSize)-(0.5f), bufferData[i+1]);
+      // The redder the lines, the closer we are to a full ring buffer
+      //curve.color(HSV(0.5 *float(bufferSize)/(bufferSize - i)));
+      //curve.color(HSV(1.0f));
+      //cout << vertexBuffer.size() << endl;
+      if (vertexBuffer.size() > (16*frameSize)){
+        vertexBuffer.pop_front();
+      }
+    }
+
+    for(int i = 0; i < vertexBuffer.size(); i++){
+      curve.vertex((float)i/(0.5f*vertexBuffer.size()) - 1.0f, vertexBuffer[i]);
+      curve.color(RGB(1.0));
+    }
+  }
+
   void onDraw(Graphics &g) override
   {
     g.clear(Color(0.21));
-    // g.draw(mesh);
-    // g.draw(line);
+    g.meshColor();
+    g.draw(curve);
+    //g.draw(line);
     gui.draw(g);
   }
 };
