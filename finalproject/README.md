@@ -1,11 +1,4 @@
 # Final Project for MAT240B
-    - Complete source code
-    - Resources (i.e., data, images, sounds, etc.)
-    - Prominent markings of software and Creative Commons licenses
-    - Documentation explaining how to build, install, and run
-    - Complete list of dependencies (software libraries, tools, apps, etc.)
-    - Final version of your 3-page project report
-
 ## title
 in translation
 
@@ -23,7 +16,7 @@ The setup is represented as an alchemy experimentation. The performer interacts 
 ### digital concatenative synthesis schematics
 A schematics of the system used for translating the analog signal is illustrated in the schematics bellow. The digital translator is based on a concatenative synthesis technique. Audio features of a corpus are calculated using [*Gist*](https://github.com/adamstark/Gist). 
 
-The realtime sound target is fed to the system using a contact microphone. The same audio features are extracted from every frame and compared to the corpus in order to determine its nearest neighbor using the [*mlpack*](https://www.mlpack.org/getstarted.html) library. The system, then, replaces the incoming target signal frame by this nearest neighbor frame from the corpus and sends it over the monitor.
+The realtime sound target is fed to the system using a contact microphone. The same audio features are extracted from every frame and compared to the corpus in order to determine its nearest neighbor using the [*mlpack*](https://www.mlpack.org/getstarted.html) library. The system, then, replaces the incoming target signal frame by this nearest neighbor frame from the corpus and sends it over the output smonitor.
 
 ![schematics 2](schematics/digitalSchema.png)
 
