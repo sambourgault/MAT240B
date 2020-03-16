@@ -4,3 +4,4 @@ bin/
 computeKNN concatenateSound createMetafile
 .exe
 *.pkf
+Gist/

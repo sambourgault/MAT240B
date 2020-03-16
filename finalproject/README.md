@@ -1,4 +1,10 @@
 # Final Project for MAT240B
+    - Complete source code
+    - Resources (i.e., data, images, sounds, etc.)
+    - Prominent markings of software and Creative Commons licenses
+    - Documentation explaining how to build, install, and run
+    - Complete list of dependencies (software libraries, tools, apps, etc.)
+    - Final version of your 3-page project report
 
 ## title
 in translation
@@ -14,7 +20,7 @@ With this project, I also wish to investigate the potential of analysis/resynthe
 
 ## schematics
 ### installation schematics
-![schematics 1](scheme1.png)
+![schematics 1](schematics/schema.png)
 
-### code schematics
-![schematics 2](scheme2.png)
+### digital concatenative synthesis schematics
+![schematics 2](schematics/digitalSchema.png)
