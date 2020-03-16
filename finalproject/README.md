@@ -35,8 +35,8 @@ The realtime sound target is fed to the system using a contact microphone. The s
 ### run run run
 - open terminal and go to the **allolib_playground** folder.
 - use the command line to make the executable `./run.sh finalproject/main_v3.cpp`
-- cd to `finalproject/bin` and run the code using `./main_v3 data ../onTranslationMono.wav ../query_soundfile.wav` 
-    - note that `data` correspond to the name of your `.meta.csv` containing the corpus audio features values. `../onTranslationMono.wav` is the corpus file, and `../query_soundfile.wav` is an **optional** argument use to run the code on this file instead of using live input. I use `../soundExplorationMono_01.wav` as my `../query_soundfile.wav` but you can use your own!
+- cd to `finalproject/bin` and run the code using `./main_v3 data ../soundfiles/onTranslationMono.wav ../soundfiles/query_soundfile.wav` 
+    - note that `data` correspond to the name of your `.meta.csv` containing the corpus audio features values. `../soundfiles/onTranslationMono.wav` is the corpus file, and `../soundfiles/query_soundfile.wav` is an **optional** argument use to run the code on this file instead of using live input. I use `../soundfiles/soundExplorationMono_01.wav` as my `../soundfiles/query_soundfile.wav` but you can use your own!
 - the live input is currently set to be an aggregate of my headphones (2 outs) and my h4n zoom recorder used as an audio interface (2 ins). your setup is probably different then mine. to make this program work, you will have to change the `main_v3.cpp` program `main` function to fit your own setup.
 - once the allolib window opens up, use the **energy peak** slider to change the input considered "energetic" enough to be resynthesized.
 
@@ -45,7 +45,7 @@ if you want to use your own corpus, you will have to create a new **data** meta 
 -  currently mycorpus if the file **onTranslationMono.wav** and the **data.meta.csv** contains the audio information associated with that soundfile.
 - so... if you want to use your own corpus: in terminal, go to the **finalproject** folder.
 - run the command `make` to make **createMetafile.cpp**.
-- run the command `./read.exe onTranslationMono.wav | ./createMetafile data`
+- run the command `./read.exe soundfiles/onTranslationMono.wav | ./createMetafile data`
 - copy your new **data.meta.csv** into the **bin** folder `cp data.meta.csv bin/data.meta.csv` 
 
 
