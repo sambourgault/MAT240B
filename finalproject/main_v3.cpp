@@ -230,6 +230,7 @@ struct Appp : App
 
     // put soundfile (query) in a soundQuery vector
     // this is used when the mic is off for testing purposes mainly
+    if (argc > 2){
     for (int i = 3; i < 4; i++)
     {
       SoundFile soundFile;
@@ -246,6 +247,8 @@ struct Appp : App
     if (soundQuery.size() < frameSize) //
       exit(1);
   }
+  }
+
 
   // functions that calculate features
   //
