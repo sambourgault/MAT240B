@@ -16,9 +16,15 @@ This project is seen as the first stage of a longer exploration on the theme of 
 
 ## schematics
 ### installation schematics
+The setup is represented as an alchemy experimentation. The performer interacts with the found and animated objects in order to generate sounds on a surface that we will call the *playground*. The sound is picked up by a contact microphone located on the same *playground*. This signal is interpreted as a live query for a concatenative synthesis algorithm. A synthesized version of this initial signal is then sent over a monitor.
+
 ![schematics 1](schematics/schema.png)
 
 ### digital concatenative synthesis schematics
+A schematics of the system used for translating the analog signal is illustrated in the schematics bellow. The digital translator is based on a concatenative synthesis technique. Audio features of a corpus are calculated using [*Gist*](https://github.com/adamstark/Gist). 
+
+The realtime sound target is fed to the system using a contact microphone. The same audio features are extracted from every frame and compared to the corpus in order to determine its nearest neighbor using the [*mlpack*](https://www.mlpack.org/getstarted.html) library. The system, then, replaces the incoming target signal frame by this nearest neighbor frame from the corpus and sends it over the monitor.
+
 ![schematics 2](schematics/digitalSchema.png)
 
 ## how to run it
