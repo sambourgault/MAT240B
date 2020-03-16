@@ -151,553 +151,15 @@ float findHighestPeak(const std::vector<float> &spectrum)
 
 static Gist<float> gist(frameSize, sampleRate);
 
-// struct Appp : public App
-// {
-//   Parameter p1{"/p1", "", 0.5, "", 0.0, 1.0};
-//   Parameter p2{"/p2", "", 0.5, "", 0.0, 1.0};
-//   Parameter p3{"/p3", "", 0.5, "", 0.0, 1.0};
-//   Parameter minEnergyPeak{"/minEnergyPeak", "", 0.05, "", 0.0, 0.3};
-//   Parameter radius{"/radius", "", 0.5, "", 0.0, 1.0};
-//   ParameterBool mic{"/mic", "", 1.0};
-//   ControlGUI gui;
-
-//   myKNN myknn;
-//   vector<float> sample; // contain all sample data
-//   vector<float> soundQuery;
-//   vector<float> soundQueryFrame;
-//   int soundQueryIndex = 0;
-//   vector<float> input;
-//   vector<FeatureVector> feature; //
-//   vector<int> neighbors;
-//   vector<int> previousNeighbors;
-//   arma::mat dataset;
-
-//   //buffer1.resize(1024);
-//   vector<float> sample1;
-//   vector<float> sample2;
-//   vector<float> hann;
-//   vector<float> hann2;
-//   float maxDist = 200.0f;
-//   int readIndex = 0;
-//   int bufferIndex = 0;
-//   int sampleIndex = 0;
-
-//   deque<int> neighborPos;
-//   deque<int> energyPeaks;
-
-//   //HashSpace space;
-//   Mesh mesh;
-//   Mesh line;
-
-//   std::ofstream test;
-
-//   Appp(int argc, char *argv[])
-//   {
-//     test.open("test.csv");
-
-//     // loading metadata of the corpus
-//     std::string filename = argv[1];
-//     filename += ".meta.csv";
-//     mlpack::data::Load(filename, dataset, true);
-//     //cout << "dataset size: " << dataset.size() << endl;
-
-//     // putting soundfile (corpus) in sample vector
-//     for (int i = 2; i < 3; i++)
-//     {
-//       SoundFile soundFile;
-//       if (!soundFile.open(argv[i])) //
-//         exit(1);
-//       if (soundFile.channels > 1) //
-//         exit(1);
-//       for (int i = 0; i < soundFile.data.size(); i++) //
-//         sample.push_back(soundFile.data[i]);
-//     }
-
-//     if (sample.size() < frameSize) //
-//       exit(1);
-
-//     for (int i = 3; i < 4; i++)
-//     {
-//       SoundFile soundFile;
-//       if (!soundFile.open(argv[i])) //
-//         exit(1);
-//       if (soundFile.channels > 1) //
-//         exit(1);
-//       for (int i = 0; i < soundFile.data.size(); i++) //
-//         soundQuery.push_back(soundFile.data[i]);
-//     }
-
-//     if (soundQuery.size() < frameSize) //
-//       exit(1);
-//   }
-
-//   // choose between features here:
-//   //
-//   float rms() { return gist.rootMeanSquare(); } // yes
-//   float peakEnergy() { return gist.peakEnergy(); }
-//   float zcr() { return gist.zeroCrossingRate(); }
-//   float energyDifference() { return gist.energyDifference(); }
-//   float spectralCentroid() { return gist.spectralCentroid(); }
-//   float spectralDifference() { return gist.spectralDifference(); } // yes
-//   float cSpectralDifference() { return gist.complexSpectralDifference(); }
-//   float highFrequencyContent() { return gist.highFrequencyContent(); } // yes
-//   float pitch() { return gist.pitch(); }
-//   float highPeak()
-//   {
-//     const std::vector<float> &magSpec = gist.getMagnitudeSpectrum();
-//     return findHighestPeak(magSpec);
-//   } // yes
-
-//   Vec3f minimum{1e30f}, maximum{-1e30f};
-
-//   // void onCreate() override
-//   // {
-
-//   //   input.resize(frameSize, 0.0f);
-//   //   sample1.resize(frameSize, 0.0f);
-//   //   sample2.resize(frameSize, 0.0f);
-//   //   hann.resize(frameSize, 0.0f);
-//   //   hann2.resize(2 * frameSize, 0.0f);
-//   //   soundQueryFrame.resize(frameSize, 0.0f);
-
-//   //   for (int i = 0; i < hann.size(); i++)
-//   //   {
-//   //     hann[i] = 0.5f * (1 - cos(2 * M_PI * i / frameSize));
-//   //   }
-
-//   //   for (int i = 0; i < hann2.size(); i++)
-//   //   {
-//   //     hann2[i] = 0.5f * (1 - cos(2 * M_PI * i / (2 * frameSize)));
-//   //   }
-
-//   //   gui << p1 << p2 << p3 << minEnergyPeak << radius << mic;
-//   //   gui.init();
-//   //   navControl().useMouse(true);
-
-//   //   // link knn to dataset
-//   //   myknn.Train(dataset);
-
-//   //   /*for (int n = 0; n + frameSize < sample.size(); n += frameSize)
-//   //   {
-//   //     gist.processAudioFrame(&sample[n], frameSize);
-//   //     FeatureVector v(rms(), peakEnergy() , zcr(),energyDifference(), spectralDifference(),highFrequencyContent(), highPeak());
-//   //     Vec3f vv(rms(), spectralDifference(), highFrequencyContent());
-//   //     if (vv.x > maximum.x)
-//   //       maximum.x = vv.x;
-//   //     if (vv.y > maximum.y)
-//   //       maximum.y = vv.y;
-//   //     if (vv.z > maximum.z)
-//   //       maximum.z = vv.z;
-//   //     if (vv.x < minimum.x)
-//   //       minimum.x = vv.x;
-//   //     if (vv.y < minimum.y)
-//   //       minimum.y = vv.y;
-//   //     if (vv.z < minimum.z)
-//   //       minimum.z = vv.z;
-//   //     feature.push_back(v);
-//   //   }
-
-//   //   line.primitive(Mesh::LINES);
-//   //   line.vertex(0, 0, 0);
-//   //   line.vertex(1, 1, 1);
-
-//   //   //space = HashSpace(6, feature.size());
-//   //   //float dim = space.dim();
-
-//   //   mesh.primitive(Mesh::POINTS);
-
-//   //   for (int n = 0; n < feature.size(); n++)
-//   //   {
-//   //     feature[n].f1 = (feature[n].f1 - minimum.x) / (maximum.x - minimum.x);
-//   //     feature[n].f2 = (feature[n].f2 - minimum.y) / (maximum.y - minimum.y);
-//   //     feature[n].f3 = (feature[n].f3 - minimum.z) / (maximum.z - minimum.z);
-//   //     Vec3f f(feature[n].f1, feature[n].f2, feature[n].f3);
-//   //     mesh.vertex(f);
-//   //     //feature[n] *= dim;
-//   //     //space.move(n, feature[n].x, feature[n].y, feature[n].z);
-//   //   }*/
-//   // }
-
-//   // doesn't start until App::start() is called
-//   //
-//   void onSound(AudioIOData &io) override
-//   {
-
-//     //return;
-//     float sum = 0;
-//     while (io())
-//     {
-//       float f = io.in(0) + io.in(1);
-//       sum += f > 0 ? f : -f;
-//       io.out(0) = io.out(1) = f / 2;
-//     }
-
-//     sum /= 1024;
-//     if (sum > .707) //
-//       printf("%f\n", sum);
-
-//     // return;
-
-//     // if (mic)
-//     // {
-//     //   /*sum /= 1024;
-//     //   if (sum > .707) //
-//     //     printf("%f\n", sum);*/
-
-//     //   // get input buffer every frameSize
-//     //   /*for (int i = 0; i < frameSize; i++)
-//     //   {
-//     //     input[i] = io.inBuffer(0)[i];
-//     //   }*/
-//     //   //cout << io.inBuffer(0)[0] << endl;
-
-//     //   /*for (int i = 0; i < frameSize; i++){
-//     //     io.outBuffer(0)[i] = input[i];
-//     //     io.outBuffer(1)[i] = input[i];
-//     //   }
-//     //   return;*/
-
-//     //   // gist for input buffer
-//     //   gist.processAudioFrame(input);
-
-//     //   arma::mat query = {rms(), peakEnergy(), zcr(), energyDifference(), spectralDifference(), highFrequencyContent(), highPeak()};
-//     //   arma::mat distances;
-//     //   arma::Mat<size_t> neighbors;
-
-//     //   // execute the search
-//     //   //
-//     //   //myKNN myknn(dataset);
-//     //   myknn.Search(query.t(), 1, neighbors, distances);
-//     //   //cout << neighbors[0] << endl;
-
-//     //   //float *frame = &sample[neighbors[0] * hopSize];
-//     //   neighborPos.push_back(neighbors[0] * hopSize);
-//     //   energyPeaks.push_back(query[1]);
-//     //   if (neighborPos.size() > 2)
-//     //   {
-//     //     neighborPos.pop_front();
-//     //     energyPeaks.pop_front();
-//     //   }
-
-//     //   for (int i = 0; i < frameSize; i++)
-//     //   {
-//     //     float value = 0.0f;
-
-//     //     for (int j = 0; j < neighborPos.size(); j++)
-//     //     {
-//     //       if (energyPeaks[j] > minEnergyPeak)
-//     //       {
-//     //         value += hann2[i + (j * frameSize)] * sample[neighborPos[j] + i + (j * frameSize)];
-//     //       }
-//     //       else
-//     //       {
-//     //         value += 0.0f;
-//     //       }
-//     //     }
-//     //     test << (1.0f / neighborPos.size()) * value << endl;
-//     //     //io.outBuffer(0)[i] = (1.0f / neighborPos.size()) * value;
-//     //     //if(query[1] > minEnergyPeak){
-//     //     io.outBuffer(0)[i] = value;
-//     //     io.outBuffer(1)[i] = value;
-//     //     //} else {
-//     //     // io.outBuffer(0)[i] = 0.0f;
-//     //     //}
-//     //   }
-
-//     //   return;
-
-//     //   //io.outBuffer(0)[readIndex] = buffer1[readIndex];
-//     //   /*for (int i = 0; i < frameSize; i++)
-//     //   {
-//     //     //Hann function
-//     //     //float w_i = 0.5f * (1 - cos(2 * M_PI * i / frameSize));
-
-//     //     if (sampleIndex == 0)
-//     //     {
-//     //       //if (distances[0] < maxDist)
-//     //       //{
-//     //         sample1[i] = frame[i];
-//     //       //}
-//     //       //else
-//     //       //{
-//     //       //  sample1[i] = 0.0f;
-//     //       //}
-//     //       sampleIndex = 1;
-//     //     }
-//     //     else
-//     //     {
-//     //       //if (distances[0] < maxDist)
-//     //       //{
-//     //         sample2[i] = frame[i];
-//     //       //}
-//     //       //else
-//     //       //{
-//     //       //  sample2[i] = 0.0f;
-//     //       //}
-//     //       sampleIndex = 0;
-//     //     }
-
-//     //     if (!sample1.empty() && !sample2.empty())
-//     //     {
-//     //       for (int i = 0; i < frameSize; i++)
-//     //       { //
-//     //         //io.outBuffer(0)[i] = sample1[i];
-//     //         float value = 0;
-//     //         if (sampleIndex == 0)
-//     //         {
-//     //           if (i < hopSize)
-//     //           {
-//     //             io.outBuffer(0)[i] = hann[i + hopSize] * sample1[i + hopSize] + hann[i] * (sample1[i] + sample2[i]) / 2;
-//     //             value = hann[i + hopSize] * sample1[i + hopSize] + hann[i] * (sample1[i] + sample2[i]) / 2;
-//     //           }
-//     //           else
-//     //           {
-//     //             io.outBuffer(0)[i] = hann[i] * (sample1[i] + sample2[i]) / 2 + hann[i - hopSize] * sample2[i];
-//     //             value = hann[i] * (sample1[i] + sample2[i]) / 2 + hann[i - hopSize] * sample2[i];
-//     //           }
-//     //         }
-//     //         else if (sampleIndex == 1)
-//     //         {
-//     //           if (i < hopSize)
-//     //           {
-//     //             io.outBuffer(0)[i] = sample2[i + hopSize] + (sample1[i] + sample2[i]) / 2;
-//     //             value = sample2[i + hopSize] + (sample1[i] + sample2[i]) / 2;
-//     //           }
-//     //           else
-//     //           {
-//     //             io.outBuffer(0)[i] = (sample1[i] + sample2[i]) / 2 + sample1[i];
-//     //             value = (sample1[i] + sample2[i]) / 2 + sample1[i];
-//     //           }
-//     //         }
-
-//     //         //printf("%f\n", io.outBuffer(0)[i]);
-//     //         //test << value << endl;
-//     //       }
-//     //     }
-//     //   }*/
-
-//     //   return;
-//     // }
-//     // else
-//     // {
-//     //   // gist for input buffer
-//     //   // get input buffer every frameSize
-//     //   for (int i = 0; i < frameSize; i++)
-//     //   {
-//     //     soundQueryFrame[i] = soundQuery[soundQueryIndex];
-//     //     soundQueryIndex++;
-//     //     //test << soundQuery[soundQueryIndex] << endl;
-//     //     if (soundQueryIndex > soundQuery.size())
-//     //     {
-//     //       exit(1);
-//     //       soundQueryIndex = 0;
-//     //     }
-//     //   }
-
-//     //   gist.processAudioFrame(soundQueryFrame);
-
-//     //   arma::mat query = {rms(), peakEnergy(), zcr(), energyDifference(), spectralDifference(), highFrequencyContent(), highPeak()};
-//     //   arma::mat distances;
-//     //   arma::Mat<size_t> neighbors;
-
-//     //   // execute the search
-//     //   //
-//     //   //myKNN myknn(dataset);
-//     //   myknn.Search(query.t(), 1, neighbors, distances);
-//     //   //cout << neighbors[0] << endl;
-
-//     //   float *frame = &sample[neighbors[0] * hopSize];
-
-//     //   neighborPos.push_back(neighbors[0] * hopSize);
-//     //   energyPeaks.push_back(query[1]);
-//     //   if (neighborPos.size() > 2)
-//     //   {
-//     //     neighborPos.pop_front();
-//     //     energyPeaks.pop_front();
-//     //   }
-
-//     //   for (int i = 0; i < frameSize; i++)
-//     //   {
-//     //     float value = 0.0f;
-
-//     //     for (int j = 0; j < neighborPos.size(); j++)
-//     //     {
-//     //       if (energyPeaks[j] > minEnergyPeak)
-//     //       {
-//     //         value += hann2[i + (j * frameSize)] * sample[neighborPos[j] + i + (j * frameSize)];
-//     //       }
-//     //       else
-//     //       {
-//     //         value += 0.0f;
-//     //       }
-//     //     }
-
-//     //     test << value << endl;
-//     //     //io.outBuffer(0)[i] = (1.0f / neighborPos.size()) * value;
-//     //     //if(query[1] > minEnergyPeak){
-//     //     io.outBuffer(0)[i] = value;
-//     //     io.outBuffer(1)[i] = value;
-//     //     //} else {
-//     //     // io.outBuffer(0)[i] = 0.0f;
-//     //     //}
-//     //   }
-
-//     //   return;
-
-//     //   /*for (int i = 0; i < frameSize; i++)
-//     //   {
-
-//     //     if (distances[0] < maxDist){
-//     //     io.outBuffer(0)[i] = hann[i]*frame[i];
-//     //     test << frame[i] << endl;
-//     //     } else {
-//     //       io.outBuffer(0)[i] = 0.0f;
-//     //       test << 0.0f << endl;
-//     //     }
-//     //   }
-
-//     //   return;*/
-
-//     //   for (int i = 0; i < frameSize; i++)
-//     //   {
-//     //     //Hann function
-//     //     //float w_i = 0.5f * (1 - cos(2 * M_PI * i / frameSize));
-
-//     //     if (sampleIndex == 0)
-//     //     {
-//     //       if (distances[0] < maxDist)
-//     //       {
-//     //         sample1[i] = frame[i];
-//     //       }
-//     //       else
-//     //       {
-//     //         sample1[i] = 0.0f;
-//     //       }
-//     //       sampleIndex = 1;
-//     //     }
-//     //     else
-//     //     {
-//     //       if (distances[0] < maxDist)
-//     //       {
-//     //         sample2[i] = frame[i];
-//     //       }
-//     //       else
-//     //       {
-//     //         sample2[i] = 0.0f;
-//     //       }
-//     //       sampleIndex = 0;
-//     //     }
-
-//     //     /*//test << frame[i] << ',' << distances[0] << endl;
-//     //     if (sampleIndex == 0){
-//     //      // test << sample2[i] << endl;
-//     //       io.outBuffer(0)[i] = sample2[i];
-//     //     } else {
-//     //      // test << sample1[i] << endl;
-//     //       io.outBuffer(0)[i] = sample1[i];
-//     //     }
-//     //     //io.outBuffer(1)[readIndex] = hann[i]*frame[i];*/
-//     //   }
-
-//     //   //return;
-
-//     //   if (!sample1.empty() && !sample2.empty())
-//     //   {
-//     //     for (int i = 0; i < frameSize; i++)
-//     //     { //
-//     //       //io.outBuffer(0)[i] = sample1[i];
-//     //       float value = 0;
-//     //       if (sampleIndex == 0)
-//     //       {
-//     //         if (i < hopSize)
-//     //         {
-//     //           io.outBuffer(0)[i] = hann[i + hopSize] * sample1[i + hopSize] + hann[i] * (sample1[i] + sample2[i]) / 2;
-//     //           value = hann[i + hopSize] * sample1[i + hopSize] + hann[i] * (sample1[i] + sample2[i]) / 2;
-//     //         }
-//     //         else
-//     //         {
-//     //           io.outBuffer(0)[i] = hann[i] * (sample1[i] + sample2[i]) / 2 + hann[i - hopSize] * sample2[i];
-//     //           value = hann[i] * (sample1[i] + sample2[i]) / 2 + hann[i - hopSize] * sample2[i];
-//     //         }
-//     //       }
-//     //       else if (sampleIndex == 1)
-//     //       {
-//     //         if (i < hopSize)
-//     //         {
-//     //           io.outBuffer(0)[i] = sample2[i + hopSize] + (sample1[i] + sample2[i]) / 2;
-//     //           value = sample2[i + hopSize] + (sample1[i] + sample2[i]) / 2;
-//     //         }
-//     //         else
-//     //         {
-//     //           io.outBuffer(0)[i] = (sample1[i] + sample2[i]) / 2 + sample1[i];
-//     //           value = (sample1[i] + sample2[i]) / 2 + sample1[i];
-//     //         }
-//     //       }
-
-//     //       //printf("%f\n", io.outBuffer(0)[i]);
-//     //       //test << value << endl;
-//     //     }
-//     //   }
-
-//     //   return;
-//     // }
-
-//     // empty; filled in by the search
-//     //
-
-//     /*if (line.vertices().size())  //
-//       line.vertices()[0] = v;
-
-//     v *= space.dim();
-
-//     HashSpace::Query query(1);
-//     if (query(space, v, radius * space.maxRadius())) {
-//       float* frame = &sample[query[0]->id * frameSize];
-//       for (int i = 0; i < frameSize; i++)  //
-//         io.outBuffer(0)[i] = frame[i];
-//       return;
-//     }*/
-
-//     /*int ratio = frameSize / hopSize;
-
-//     for (int j = 0; j < neighbors.size(); j++)
-//     {
-
-//       for (int i = 0; i < hopSize; i++)
-//       {
-//         float add = 0.0f;
-//         for (int k = 0; k < ratio; k++)
-//         {
-//           if (j >= k && (neighbors[j - k] * hopSize + i + hopSize) < sample.size())
-//           {
-//             // Hamming window
-//             float w_i = 0.54f - 0.46f * cos(TWO_PI * ((k * hopSize) + i) / frameSize);
-//             add += w_i * sample[neighbors[j - k] * hopSize + (k * hopSize) + i];
-//           }
-//         }
-
-//         printf("%f\n", add);
-//       }
-//     }*/
-//   }
-
-//  /* void onDraw(Graphics &g) override
-//   {
-//     g.clear(Color(0.21));
-//     // g.draw(mesh);
-//     // g.draw(line);
-//     gui.draw(g);
-//   }*/
-// };
-
 struct Appp : App
 {
   // csv file for test purpose
   std::ofstream test;
 
   // gui
-  Parameter minEnergyPeak{"/minEnergyPeak", "", 0.01, "", 0.0, 0.2};
-  ParameterBool mic{"/mic", "", 1.0};
+  Parameter minEnergyPeak{"minEnergyPeak", "", 0.01, "", 0.0, 0.2};
+  Parameter amplifier{"amplifier", "", 1.0, "", 0.0, 20.0};
+  ParameterBool mic{"mic", "", 0.0};
   ControlGUI gui;
 
   //graphics
@@ -705,7 +167,7 @@ struct Appp : App
   float bufferData[8192];
   double phase = 0;
   // Create ring buffer with size 2048
-  SingleRWRingBuffer ringBuffer{bufferSize * sizeof (float)};
+  SingleRWRingBuffer ringBuffer{bufferSize * sizeof(float)};
   Mesh curve;
   Mesh line;
   deque<float> vertexBuffer;
@@ -775,8 +237,10 @@ struct Appp : App
         exit(1);
       if (soundFile.channels > 1) //
         exit(1);
-      for (int i = 0; i < soundFile.data.size(); i++) //
+      for (int i = 0; i < soundFile.data.size(); i++){
         soundQuery.push_back(soundFile.data[i]);
+        //test << soundQuery[i] << endl;
+      }
     }
 
     if (soundQuery.size() < frameSize) //
@@ -803,8 +267,8 @@ struct Appp : App
   void onCreate() override
   {
     line.primitive(Mesh::LINE_STRIP);
-    line.vertex(0,0,0);
-    line.vertex(1,1,0);
+    line.vertex(0, 0, 0);
+    line.vertex(1, 1, 0);
     // resize vectors to framesize
     //input.resize(frameSize, 0.0f);
     hann.resize(frameSize, 0.0f);
@@ -823,10 +287,10 @@ struct Appp : App
     }
 
     // initialize gui
-    gui << minEnergyPeak << mic;
+    gui << minEnergyPeak << amplifier << mic;
     gui.init();
     //navControl().useMouse(true);
-    nav().pos(0,0,1);
+    nav().pos(0, 0, 1);
 
     // link knn to dataset
     myknn.Train(dataset);
@@ -837,6 +301,7 @@ struct Appp : App
     float sum = 0;
     input.clear();
 
+    // add input from mic to input vector
     while (io())
     {
       float f = io.in(0) + io.in(1);
@@ -844,20 +309,9 @@ struct Appp : App
       input.push_back(f / 2);
       //io.out(0) = io.out(1) = f / 2;
     }
-    // sum /= 1024;
-    // if (sum > .707) //
-    //   printf("%f\n", sum);
 
     if (mic)
     {
-
-      // get input buffer every frameSize
-      /*for (int i = 0; i < frameSize; i++)
-      {
-        input[i] = io.inBuffer(0)[i];
-      }*/
-      //cout << io.inBuffer(0)[0] << endl;
-
       // gist for input buffer
       gist.processAudioFrame(input);
 
@@ -868,7 +322,6 @@ struct Appp : App
       // execute the search
       //
       myknn.Search(query.t(), 1, neighbors, distances);
-
       //float *frame = &sample[neighbors[0] * hopSize];
 
       // keep track of previous neighbors and peak energy values
@@ -901,40 +354,106 @@ struct Appp : App
           }
           else
           {
-            
+
             value += 0.0f;
           }
         }
-        //test << (1.0f / neighborPos.size()) * value << endl;
-        //io.outBuffer(0)[i] = (1.0f / neighborPos.size()) * value;
-        //if(query[1] > minEnergyPeak){
-        /*io.outBuffer(0)[i] = input[i];
-        io.outBuffer(1)[i] = input[i];*/
+
+        // values to be ploted
         out[0] = i;
         out[1] = value;
-        
-        /*out[0] = cos(5*0 * 2*M_PI);
-        out[1] = sin(4*0* 2*M_PI);*/
 
         io.outBuffer(0)[i] = value;
         io.outBuffer(1)[i] = input[i];
 
         //cout << out[0] <<' ' << out[1] << endl;
         // Write the waveforms to the ring buffer. (from Putnam audiotoGraphics.cpp)
-        ringBuffer.write((const char *) out, 2 * sizeof (float));
-
-
-        //} else {
-        // io.outBuffer(0)[i] = 0.0f;
-        //}
+        ringBuffer.write((const char *)out, 2 * sizeof(float));
       }
-    } else {
-      // if mic is off don't play anything
+    }
+    else
+    {
+      // if mic is off, use sound file argv[1] saved in soundQuery vector
       //
-      for (int i = 0; i < frameSize; i++)
+      /*for (int i = 0; i < frameSize; i++)
       {
         io.outBuffer(0)[i] = 0.0f;
         io.outBuffer(1)[i] = 0.0f;
+      }*/
+
+      // get soundfile buffer every frameSize
+      for (int i = 0; i < frameSize; i++)
+      {
+        soundQueryFrame[i] = soundQuery[soundQueryIndex];
+        soundQueryIndex++;
+
+        if (soundQueryIndex > soundQuery.size())
+        {
+          // exit when the soundfile has been processed entirely
+          exit(1);
+          soundQueryIndex = 0;
+        }
+      }
+
+      // gist for soundfile buffer
+      gist.processAudioFrame(soundQueryFrame);
+     
+      arma::mat query = {rms(), peakEnergy(), zcr(), energyDifference(), spectralDifference(), highFrequencyContent(), highPeak()};
+      arma::mat distances;
+      arma::Mat<size_t> neighbors;
+
+      // execute the search
+      //
+      myknn.Search(query.t(), 1, neighbors, distances);
+
+      // the rest is the same as live input
+      //
+
+      // keep track of previous neighbors and peak energy values
+      //
+      neighborPos.push_back(neighbors[0] * hopSize);
+      energyPeaks.push_back(query[1]);
+
+      //cout << query[1] << endl;
+
+      if (neighborPos.size() > 2)
+      {
+        neighborPos.pop_front();
+        energyPeaks.pop_front();
+      }
+
+      // smooth value with the value of the previous sample
+      //
+      float out[2];
+      for (int i = 0; i < frameSize; i++)
+      {
+        float value = 0.0f;
+
+        for (int j = 0; j < neighborPos.size(); j++)
+        {
+          //cout << energyPeaks[j] << endl;
+          if (energyPeaks[j] > minEnergyPeak)
+          {
+            value += hann2[i + (j * frameSize)] * sample[neighborPos[j] + i + (j * frameSize)];
+          }
+          else
+          {
+            value += 0.0f;
+          }
+        }
+
+        // values to be ploted
+        out[0] = i;
+        out[1] = value;
+        //test << value << endl;
+        
+        //test << soundQuery[i] << endl;
+
+        io.outBuffer(0)[i] = value;
+        io.outBuffer(1)[i] = soundQuery[(soundQueryIndex - frameSize) + i];
+
+        // Write the waveforms to the ring buffer. (from Putnam audiotoGraphics.cpp)
+        ringBuffer.write((const char *)out, 2 * sizeof(float));
       }
     }
   }
@@ -946,24 +465,27 @@ struct Appp : App
     curve.primitive(Mesh::LINE_STRIP);
     curve.reset();
 
-    size_t samplesRead = ringBuffer.read((char *) bufferData, bufferSize * sizeof (float));
+    size_t samplesRead = ringBuffer.read((char *)bufferData, bufferSize * sizeof(float));
 
     // Now we read samples from the buffer into the meash to be displayed
-    for(size_t i=0; i < samplesRead/sizeof (float); i = i+2){
-      vertexBuffer.push_back(bufferData[i+1]);
+    for (size_t i = 0; i < samplesRead / sizeof(float); i = i + 2)
+    {
+      vertexBuffer.push_back(bufferData[i + 1]);
       //cout << bufferData[i]/frameSize << ' ' <<  100*bufferData[i+1] << endl;
       //curve.vertex((bufferData[i]/frameSize)-(0.5f), bufferData[i+1]);
       // The redder the lines, the closer we are to a full ring buffer
       //curve.color(HSV(0.5 *float(bufferSize)/(bufferSize - i)));
       //curve.color(HSV(1.0f));
       //cout << vertexBuffer.size() << endl;
-      if (vertexBuffer.size() > (16*frameSize)){
+      if (vertexBuffer.size() > (32 * frameSize))
+      {
         vertexBuffer.pop_front();
       }
     }
 
-    for(int i = 0; i < vertexBuffer.size(); i++){
-      curve.vertex((float)i/(0.5f*vertexBuffer.size()) - 1.0f, vertexBuffer[i]);
+    for (int i = 0; i < vertexBuffer.size(); i++)
+    {
+      curve.vertex((float)i / (0.5f * vertexBuffer.size()) - 1.0f, vertexBuffer[i]);
       curve.color(RGB(1.0));
     }
   }
