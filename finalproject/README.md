@@ -20,7 +20,7 @@ The realtime sound target is fed to the system using a contact microphone. The s
 
 ![schematics 2](schematics/digitalSchema.png)
 
-And here is a documentation of this first exploration.
+And here is a documentation of this first exploration. Just click on the picture :))
 [![in translation](schematics/inTranslationScreenshot.png)](https://vimeo.com/398724611)
 
 ## how to run it
