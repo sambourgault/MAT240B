@@ -154,12 +154,14 @@ static Gist<float> gist(frameSize, sampleRate);
 struct Appp : App
 {
   // csv file for test purpose
-  std::ofstream test;
+  std::ofstream testInput;
+  // csv file for test purpose
+  std::ofstream testValues;
 
   // gui
   Parameter minEnergyPeak{"minEnergyPeak", "", 0.01, "", 0.0, 0.2};
-  Parameter amplifier{"amplifier", "", 1.0, "", 0.0, 20.0};
-  ParameterBool mic{"mic", "", 0.0};
+  Parameter amplifier{"amplifier", "", 1.0, "", 0.0, 3.0};
+  ParameterBool mic{"mic", "", 1.0};
   ControlGUI gui;
 
   //graphics
@@ -183,6 +185,9 @@ struct Appp : App
   vector<int> neighbors;
   vector<int> previousNeighbors;
   arma::mat dataset;
+  bool holdSample = false;
+  float value = 0.0f;
+  int positionInSample = 0;
 
   //buffer1.resize(1024);
   //vector<float> sample1;
@@ -205,7 +210,8 @@ struct Appp : App
     // open test.csv file to save output data
     // to be able to look at the signal generated afterward
     // thi is use to debug only
-    test.open("test.csv");
+    testInput.open("testinput.csv");
+    testValues.open("testvalues.csv");
 
     // load the data (corpus) metafile
     std::string filename = argv[1];
@@ -230,25 +236,26 @@ struct Appp : App
 
     // put soundfile (query) in a soundQuery vector
     // this is used when the mic is off for testing purposes mainly
-    if (argc > 2){
-    for (int i = 3; i < 4; i++)
+    if (argc > 3)
     {
-      SoundFile soundFile;
-      if (!soundFile.open(argv[i])) //
-        exit(1);
-      if (soundFile.channels > 1) //
-        exit(1);
-      for (int i = 0; i < soundFile.data.size(); i++){
-        soundQuery.push_back(soundFile.data[i]);
-        //test << soundQuery[i] << endl;
+      for (int i = 3; i < 4; i++)
+      {
+        SoundFile soundFile;
+        if (!soundFile.open(argv[i])) //
+          exit(1);
+        if (soundFile.channels > 1) //
+          exit(1);
+        for (int i = 0; i < soundFile.data.size(); i++)
+        {
+          soundQuery.push_back(soundFile.data[i]);
+          //test << soundQuery[i] << endl;
+        }
       }
+
+      if (soundQuery.size() < frameSize) //
+        exit(1);
     }
-
-    if (soundQuery.size() < frameSize) //
-      exit(1);
   }
-  }
-
 
   // functions that calculate features
   //
@@ -310,7 +317,9 @@ struct Appp : App
       float f = io.in(0) + io.in(1);
       sum += f > 0 ? f : -f;
       input.push_back(f / 2);
-      //io.out(0) = io.out(1) = f / 2;
+      // REMOVE THIS LINE IF YOU DON'T WANT TO RECORD THE INCOMING DATA
+      testInput << (f / 2) << endl;
+      // **************************************************************
     }
 
     if (mic)
@@ -343,28 +352,51 @@ struct Appp : App
       // smooth value with the value of the previous sample
       //
       float out[2];
+
       for (int i = 0; i < frameSize; i++)
       {
-        float value = 0.0f;
-
-        for (int j = 0; j < neighborPos.size(); j++)
+        value = 0.0f;
+        if (holdSample)
         {
-          //cout << energyPeaks[j] << endl;
-          if (energyPeaks[j] > minEnergyPeak)
-          {
-            value += hann2[i + (j * frameSize)] * sample[neighborPos[j] + i + (j * frameSize)];
-            //cout << value << endl;
-          }
-          else
-          {
+          //value = hann[i] * sample[positionInSample + i];
+          value = sample[positionInSample + i];
 
-            value += 0.0f;
+          if (i == frameSize-1){
+            positionInSample += frameSize;
+          }
+
+          if (positionInSample > sample.size())
+          {
+            positionInSample = 0;
+          }
+        }
+        else
+        {
+          for (int j = 0; j < neighborPos.size(); j++)
+          {
+            if (energyPeaks[j] > minEnergyPeak && !holdSample)
+            {
+              value += hann2[i + (j * frameSize)] * sample[neighborPos[j] + i + (j * frameSize)];
+              //cout << value << endl;
+              if (j == 0)
+              {
+                positionInSample = neighborPos[0];
+              }
+            }
+            else
+            {
+              value = 0.0f;
+            }
           }
         }
 
         // values to be ploted
         out[0] = i;
         out[1] = value;
+
+        // REMOVE THIS LINE IF YOU DON'T WANT TO RECORD THE OUTPUT DATA
+        testValues << value << endl;
+        // **************************************************************
 
         io.outBuffer(0)[i] = value;
         io.outBuffer(1)[i] = input[i];
@@ -400,7 +432,7 @@ struct Appp : App
 
       // gist for soundfile buffer
       gist.processAudioFrame(soundQueryFrame);
-     
+
       arma::mat query = {rms(), peakEnergy(), zcr(), energyDifference(), spectralDifference(), highFrequencyContent(), highPeak()};
       arma::mat distances;
       arma::Mat<size_t> neighbors;
@@ -430,7 +462,7 @@ struct Appp : App
       float out[2];
       for (int i = 0; i < frameSize; i++)
       {
-        float value = 0.0f;
+        value = 0.0f;
 
         for (int j = 0; j < neighborPos.size(); j++)
         {
@@ -449,15 +481,30 @@ struct Appp : App
         out[0] = i;
         out[1] = value;
         //test << value << endl;
-        
+
         //test << soundQuery[i] << endl;
 
         io.outBuffer(0)[i] = value;
-        io.outBuffer(1)[i] = soundQuery[(soundQueryIndex - frameSize) + i];
+        io.outBuffer(1)[i] = amplifier * soundQuery[(soundQueryIndex - frameSize) + i];
 
         // Write the waveforms to the ring buffer. (from Putnam audiotoGraphics.cpp)
         ringBuffer.write((const char *)out, 2 * sizeof(float));
       }
+    }
+  }
+
+  // This is called whenever a key is pressed.
+  bool onKeyDown(const Keyboard &k) override
+  {
+    // Use a switch to do something when a particular key is pressed
+    switch (k.key())
+    {
+    case '1':
+      holdSample = true;
+      break;
+    case '2':
+      holdSample = false;
+      break;
     }
   }
 
@@ -495,7 +542,7 @@ struct Appp : App
 
   void onDraw(Graphics &g) override
   {
-    g.clear(Color(0.21));
+    g.clear(Color(0.0f));
     g.meshColor();
     g.draw(curve);
     //g.draw(line);
